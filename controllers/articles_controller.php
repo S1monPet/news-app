@@ -40,4 +40,24 @@ class articles_controller
     public function create(){
         require_once('views/articles/create.php');
     }
+
+        public function store()
+    {
+        if (!isset($_SESSION["USER_ID"])) {
+            header("Location: /auth/login");
+            die();
+        }
+        
+        if (empty($_POST["title"]) || empty($_POST["abstract"]) || empty($_POST["text"])) {
+            header("Location: /articles/create?error=1");
+            die();
+        }
+
+        if (Article::create($_POST["title"], $_POST["abstract"], $_POST["text"], $_SESSION["USER_ID"])) {
+            header("Location: /");
+        } else {
+            header("Location: /articles/create?error=2");
+        }
+        die();
+    }
 }

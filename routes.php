@@ -33,7 +33,7 @@ $controllers = array(
 if(isset($_SESSION["USER_ID"])){
   $controllers['users'] = array_merge($controllers['users'], ['edit', 'update']);
   $controllers['auth'] = array_merge($controllers['auth'], ['logout']);
-  $controllers['articles'] = array_merge($controllers['articles'], ['create']); // TODO: 'list', 'store', 'edit', 'update', 'delete'
+  $controllers['articles'] = array_merge($controllers['articles'], ['create', 'store']); // TODO: 'list', 'store', 'edit', 'update', 'delete'
 }
 
 // Preverimo, če zahteva kliče controller in akcijo iz zgornjega seznama
