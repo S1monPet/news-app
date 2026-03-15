@@ -66,4 +66,36 @@ class Article
         $query = "INSERT INTO articles (title, abstract, text, user_id) VALUES ('$title', '$abstract', '$text', $user_id);";
         return $db->query($query);
     }
+
+     public static function all_by_user($user_id)
+    {
+        $db = Db::getInstance();
+        $user_id = (int)$user_id;
+        $query = "SELECT * FROM articles WHERE user_id = $user_id;";
+        $res = $db->query($query);
+        $articles = array();
+        while ($article = $res->fetch_object()) {
+            array_push($articles, new Article($article->id, $article->title, $article->abstract, $article->text, $article->date, $article->user_id));
+        }
+        return $articles;
+    }
+
+        public function update($title, $abstract, $text)
+    {
+        $db = Db::getInstance();
+        $title    = mysqli_real_escape_string($db, $title);
+        $abstract = mysqli_real_escape_string($db, $abstract);
+        $text     = mysqli_real_escape_string($db, $text);
+        $id = $this->id;
+        $query = "UPDATE articles SET title='$title', abstract='$abstract', text='$text' WHERE id=$id LIMIT 1;";
+        return $db->query($query);
+    }
+ 
+    public function delete()
+    {
+        $db = Db::getInstance();
+        $id = $this->id;
+        $query = "DELETE FROM articles WHERE id=$id LIMIT 1;";
+        return $db->query($query);
+    }
 }

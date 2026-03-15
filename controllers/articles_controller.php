@@ -47,7 +47,7 @@ class articles_controller
             header("Location: /auth/login");
             die();
         }
-        
+
         if (empty($_POST["title"]) || empty($_POST["abstract"]) || empty($_POST["text"])) {
             header("Location: /articles/create?error=1");
             die();
@@ -58,6 +58,83 @@ class articles_controller
         } else {
             header("Location: /articles/create?error=2");
         }
+        die();
+    }
+
+        public function list()
+    {
+        if (!isset($_SESSION["USER_ID"])) {
+            header("Location: /auth/login");
+            die();
+        }
+        $articles = Article::all_by_user($_SESSION["USER_ID"]);
+        require_once('views/articles/list.php');
+    }
+ 
+    public function edit()
+    {
+        if (!isset($_SESSION["USER_ID"])) {
+            header("Location: /auth/login");
+            die();
+        }
+        if (!isset($_GET['id'])) {
+            return call('pages', 'error');
+        }
+        $article = Article::find($_GET['id']);
+        if ($article == null || $article->user->id != $_SESSION["USER_ID"]) {
+            return call('pages', 'error');
+        }
+        $error = "";
+        if (isset($_GET["error"])) {
+            $error = "Izpolnite vsa polja.";
+        }
+        require_once('views/articles/edit.php');
+    }
+ 
+    public function update()
+    {
+        if (!isset($_SESSION["USER_ID"])) {
+            header("Location: /auth/login");
+            die();
+        }
+        if (!isset($_GET['id'])) {
+            header("Location: /pages/error");
+            die();
+        }
+        $article = Article::find($_GET['id']);
+        if ($article == null || $article->user->id != $_SESSION["USER_ID"]) {
+            header("Location: /pages/error");
+            die();
+        }
+        if (empty($_POST["title"]) || empty($_POST["abstract"]) || empty($_POST["text"])) {
+            header("Location: /articles/edit?id=" . $_GET['id'] . "&error=1");
+            die();
+        }
+        if ($article->update($_POST["title"], $_POST["abstract"], $_POST["text"])) {
+            header("Location: /articles/list");
+        } else {
+            header("Location: /articles/edit?id=" . $_GET['id'] . "&error=2");
+        }
+        die();
+    }
+ 
+    public function delete()
+    {
+        if (!isset($_SESSION["USER_ID"])) {
+            header("Location: /auth/login");
+            die();
+        }
+        if (!isset($_GET['id'])) {
+            header("Location: /pages/error");
+            die();
+        }
+        $article = Article::find($_GET['id']);
+        if ($article == null || $article->user->id != $_SESSION["USER_ID"]) {
+            header("Location: /pages/error");
+            die();
+        }
+        $article->delete();
+        header("Location: /articles/list");
         die();
     }
 }
