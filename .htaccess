@@ -1,0 +1,14 @@
+# Datoteka .htaccess nastavi konfiguracijo Apache strežnika v trenutni mapi
+# V tem primeru smo vključili modul mod_rewrite, ki skrbi za preslikovanje URL naslovov.
+# To nam omogoča, da uporabnik v brskalniku vidi in uporablja 'lepe' URL naslove, strežnik pa vidi preslikane različice.
+# Napisali smo pravila za preslikovanje URL naslovov v MVC.
+# Več o pravilih lahko zveste na http://httpd.apache.org/docs/current/mod/mod_rewrite.html
+
+# Vključimo mod_rewrite
+RewriteEngine on
+
+# Rewrite "/some_controller/some_action" => "/index.php?controller=some_controller&action=some_action"
+RewriteRule ^([^/]+)/([^/]+)$ index.php?controller=$1&action=$2 [L,QSA]
+
+# OPOMBA:
+# V kolikor vam brskalnik za kratke URL naslove javlja 'Page not found', vam mod_rewrite ne deluje pravilno.
