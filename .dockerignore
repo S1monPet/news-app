@@ -1,0 +1,26 @@
+# ============================================================
+# .dockerignore
+# Datoteke in mape, ki jih NE kopiramo v Docker zabojnik
+# ============================================================
+
+# Git metapodatki (niso potrebni v produkciji)
+.git
+.gitignore
+
+# GitHub Actions workflows (niso del aplikacije)
+.github
+
+# Docker datoteke same po sebi
+Dockerfile
+.dockerignore
+
+# Testne datoteke (ne sodijo v produkcijsko sliko)
+tests/
+
+# Začasne datoteke in logi
+*.log
+napaka.txt
+
+# OS specifične datoteke
+.DS_Store
+Thumbs.db

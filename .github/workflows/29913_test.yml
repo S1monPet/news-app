@@ -1,0 +1,155 @@
+# ============================================================
+# Workflow: 29913_test.yml
+# Namen: Preverjanje testnih skript in izvajanje testov za news-app
+# Sproži se: ob vsakem potisku (push) na vejo main
+# Avtor: 29913
+# ============================================================
+
+name: 29913 - Testiranje
+
+# Workflow se sproži ob potisku na main vejo
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+
+  # ============================================================
+  # JOB 1: preveri-teste
+  # Namen: Preveri, ali testne skripte sploh obstajajo v repozitoriju.
+  #        Standardno napako preusmeri v napaka.txt in ga objavi kot artefakt.
+  #        Drugi posel je odvisen od tega posla.
+  # ============================================================
+  preveri-teste:
+    name: "1. Preveri obstoj testnih skript"
+    # Posel teče na self-hosted runnerju (naš lokalni Linux strežnik)
+    runs-on: self-hosted
+
+    steps:
+      # Korak 1: Pridobi kodo iz repozitorija
+      - name: Prenesi kodo iz repozitorija
+        uses: actions/checkout@v4
+
+      # Korak 2: Preveri, ali mapa tests/ obstaja in ali vsebuje PHP testne datoteke.
+      #          Standardno napako (stderr) preusmerimo v datoteko napaka.txt.
+      #          Če teste najdemo, napaka.txt ostane prazna → drugi posel se izvede.
+      #          Če testov ni, napaka.txt vsebuje sporočilo → drugi posel se prekine.
+      - name: Preveri obstoj testnih datotek
+        run: |
+          # Ustvari datoteko napaka.txt (bo prazna, če ne bo napak)
+          touch napaka.txt
+
+          # Preveri, ali obstaja mapa tests/
+          if [ ! -d "tests" ]; then
+            echo "NAPAKA: Mapa 'tests/' ne obstaja v repozitoriju!" 1>&2
+            echo "NAPAKA: Mapa 'tests/' ne obstaja v repozitoriju!" > napaka.txt
+            exit 1
+          fi
+
+          # Preveri, ali mapa tests/ vsebuje vsaj eno PHP datoteko
+          PHP_FILES=$(find tests/ -name "*.php" 2>&1)
+          if [ -z "$PHP_FILES" ]; then
+            echo "NAPAKA: V mapi 'tests/' ni nobene PHP testne datoteke!" 1>&2
+            echo "NAPAKA: V mapi 'tests/' ni nobene PHP testne datoteke!" > napaka.txt
+            exit 1
+          fi
+
+          echo "OK: Najdene testne datoteke:"
+          echo "$PHP_FILES"
+
+      # Korak 3: Objavi napaka.txt kot artefakt, da ga lahko drugi posel prebere.
+      #          Artefakt se ohrani 1 dan (dovolj za CI/CD potek).
+      - name: Objavi artefakt napaka.txt
+        # Artefakt objavimo vedno — tudi ob napaki, da drugi posel ve, kaj se je zgodilo
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: napaka-artefakt
+          path: napaka.txt
+          retention-days: 1
+
+  # ============================================================
+  # JOB 2: zaženi-teste
+  # Namen: Pripravi izvajalno okolje (PHP + razširitve) in požene teste.
+  #        Posel je odvisen od prvega posla (needs: preveri-teste).
+  #        Uporablja MATRIKO za testiranje na več verzijah PHP.
+  # ============================================================
+  zaženi-teste:
+    name: "2. Zaženi teste (PHP ${{ matrix.php-version }})"
+    runs-on: self-hosted
+
+    # Ta posel se izvede šele ko se prvi posel uspešno zaključi
+    needs: preveri-teste
+
+    # --------------------------------------------------------
+    # MATRIKA: testiramo na več verzijah PHP
+    # To zagotavlja, da aplikacija deluje na različnih okoljih
+    # --------------------------------------------------------
+    strategy:
+      matrix:
+        php-version: ["8.1", "8.2"]
+      # Ob napaki ene verzije nadaljujemo z ostalimi (da vidimo celotno sliko)
+      fail-fast: false
+
+    steps:
+      # Korak 1: Pridobi kodo iz repozitorija
+      - name: Prenesi kodo iz repozitorija
+        uses: actions/checkout@v4
+
+      # Korak 2: Prenesi artefakt napaka.txt iz prvega posla
+      - name: Prenesi artefakt napaka.txt
+        uses: actions/download-artifact@v4
+        with:
+          name: napaka-artefakt
+
+      # Korak 3: Preveri vsebino napaka.txt
+      #          Če datoteka ni prazna, prvi posel je zaznal napako → prekinemo
+      - name: Preveri vsebino napaka.txt
+        run: |
+          if [ -s napaka.txt ]; then
+            echo "Napaka iz prvega posla:"
+            cat napaka.txt
+            echo "Testiranje se prekinja zaradi napake v prvem poslu."
+            exit 1
+          fi
+          echo "napaka.txt je prazna — nadaljujemo s testiranjem."
+
+      # Korak 4: Namesti zahtevano verzijo PHP (iz matrike)
+      - name: Namesti PHP ${{ matrix.php-version }}
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: ${{ matrix.php-version }}
+          # Namestimo razširitve, ki jih aplikacija potrebuje
+          extensions: mbstring, mysqli, json
+          # Vklopimo pokritost kode (za morebitne prihodnje poročila)
+          coverage: none
+
+      # Korak 5: Preveri, da je PHP pravilno nameščen
+      - name: Preveri PHP verzijo
+        run: php --version
+
+      # Korak 6: Zaženi vse testne datoteke iz mape tests/
+      #          Standardno napako preusmerimo v napaka.txt za evidence
+      - name: Poženi testne skripte
+        run: |
+          echo "Zaganjam teste z PHP ${{ matrix.php-version }}..."
+          # Poženemo vse PHP teste in standardno napako zabeležimo
+          php tests/NewsAppTest.php 2> napaka.txt
+          EXIT_CODE=$?
+
+          # Izpišemo morebitne napake
+          if [ -s napaka.txt ]; then
+            echo "Zaznan stderr med testi:"
+            cat napaka.txt
+          fi
+
+          # Vrnemo originalni izhodni kod (0 = uspeh, 1 = neuspeh)
+          exit $EXIT_CODE
+
+      # Korak 7: Ob neuspehu izpišemo vsebino napaka.txt za lažje razhroščevanje
+      - name: Izpiši napake (ob neuspehu)
+        if: failure()
+        run: |
+          echo "=== Vsebina napaka.txt ==="
+          cat napaka.txt || echo "(datoteka je prazna ali ne obstaja)"
