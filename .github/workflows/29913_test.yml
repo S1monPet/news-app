@@ -75,7 +75,7 @@ jobs:
   #        Posel je odvisen od prvega posla (needs: preveri-teste).
   #        Uporablja MATRIKO za testiranje na več verzijah PHP.
   # ============================================================
-  zaženi-teste:
+  zazeni-teste:
     name: "2. Zaženi teste (PHP ${{ matrix.php-version }})"
     runs-on: self-hosted
 
