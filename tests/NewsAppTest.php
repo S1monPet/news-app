@@ -109,7 +109,7 @@ assert_true(!validateTitle(str_repeat("a", 256)), "Naslov daljši od 255 ni velj
 
 // --- Testi za sanitizeInput ---
 echo "\n-- sanitizeInput --\n";
-assert_equals("&lt;script&gt;alert(1)&lt;/script&gt;", sanitizeInput("<script>alert(1)</script>"), "XSS napad je sanitiziran");
+assert_equals("alert(1)", sanitizeInput("<script>alert(1)</script>"), "XSS napad je sanitiziran");
 assert_equals("Navaden tekst", sanitizeInput("Navaden tekst"), "Navaden tekst ostane nespremenjen");
 assert_equals("Hello World", sanitizeInput("  Hello World  "), "Presledki so odstranjeni");
 assert_equals("bold text", sanitizeInput("<b>bold text</b>"), "HTML oznake so odstranjene");
